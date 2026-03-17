@@ -1,0 +1,1552 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>sitehost — one binary, many sites</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* ── THEME ─────────────────────────────────────────────── */
+      :root {
+        --white: #ffffff;
+        --off: #f7f6f3;
+        --ink: #0e0e0d;
+        --muted: #6b6b65;
+        --faint: #e8e7e2;
+        --go: #00acd7;
+      }
+      [data-theme="dark"] {
+        --white: #0f0f0e;
+        --off: #181816;
+        --ink: #edecea;
+        --muted: #888880;
+        --faint: #2a2a27;
+        --go: #29c4e8;
+      }
+      @media (prefers-color-scheme: dark) {
+        [data-theme="auto"] {
+          --white: #0f0f0e;
+          --off: #181816;
+          --ink: #edecea;
+          --muted: #888880;
+          --faint: #2a2a27;
+          --go: #29c4e8;
+        }
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        background: var(--white);
+        color: var(--ink);
+        font-family: "DM Sans", sans-serif;
+        font-weight: 300;
+        line-height: 1.6;
+        overflow-x: hidden;
+      }
+
+      /* ── NAV ───────────────────────────────────────────────── */
+      nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 200;
+        height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 48px;
+        background: color-mix(in srgb, var(--white) 88%, transparent);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-bottom: 1px solid var(--faint);
+        transition: background 0.3s;
+      }
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: "DM Mono", monospace;
+        font-size: 15px;
+        font-weight: 500;
+        text-decoration: none;
+        color: var(--ink);
+        flex-shrink: 0;
+      }
+      .nav-right {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .nav-desktop {
+        display: flex;
+        gap: 24px;
+        align-items: center;
+        margin-right: 8px;
+      }
+      .nav-desktop a {
+        font-size: 13px;
+        color: var(--muted);
+        text-decoration: none;
+        font-family: "DM Mono", monospace;
+        transition: color 0.2s;
+      }
+      .nav-desktop a:hover {
+        color: var(--ink);
+      }
+      .nav-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--ink);
+        color: var(--white);
+        padding: 7px 14px;
+        border-radius: 6px;
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+        text-decoration: none;
+        transition: opacity 0.2s;
+      }
+      .nav-cta:hover {
+        opacity: 0.82;
+      }
+
+      /* dark mode toggle */
+      .theme-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        border: 1px solid var(--faint);
+        background: var(--off);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--muted);
+        transition:
+          color 0.2s,
+          background 0.2s;
+        flex-shrink: 0;
+      }
+      .theme-btn:hover {
+        color: var(--ink);
+        background: var(--faint);
+      }
+      .theme-btn .icon-sun,
+      .theme-btn .icon-moon {
+        display: none;
+      }
+      [data-theme="light"] .theme-btn .icon-sun,
+      html:not([data-theme="dark"]) .theme-btn .icon-sun {
+        display: block;
+      }
+      [data-theme="dark"] .theme-btn .icon-moon {
+        display: block;
+      }
+      @media (prefers-color-scheme: dark) {
+        [data-theme="auto"] .theme-btn .icon-moon {
+          display: block;
+        }
+        [data-theme="auto"] .theme-btn .icon-sun {
+          display: none;
+        }
+      }
+      @media (prefers-color-scheme: light) {
+        [data-theme="auto"] .theme-btn .icon-sun {
+          display: block;
+        }
+        [data-theme="auto"] .theme-btn .icon-moon {
+          display: none;
+        }
+      }
+
+      /* hamburger */
+      .nav-burger {
+        display: none;
+        flex-direction: column;
+        gap: 5px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        color: var(--ink);
+      }
+      .nav-burger span {
+        display: block;
+        width: 22px;
+        height: 1.5px;
+        background: var(--ink);
+        border-radius: 2px;
+        transition:
+          transform 0.25s,
+          opacity 0.2s;
+      }
+      .nav-burger.open span:nth-child(1) {
+        transform: translateY(6.5px) rotate(45deg);
+      }
+      .nav-burger.open span:nth-child(2) {
+        opacity: 0;
+      }
+      .nav-burger.open span:nth-child(3) {
+        transform: translateY(-6.5px) rotate(-45deg);
+      }
+
+      .nav-drawer {
+        display: none;
+        position: fixed;
+        top: 58px;
+        left: 0;
+        right: 0;
+        background: var(--white);
+        border-bottom: 1px solid var(--faint);
+        padding: 16px 24px 24px;
+        flex-direction: column;
+        z-index: 190;
+      }
+      .nav-drawer.open {
+        display: flex;
+      }
+      .nav-drawer a {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--faint);
+        font-family: "DM Mono", monospace;
+        font-size: 14px;
+        color: var(--muted);
+        text-decoration: none;
+      }
+      .nav-drawer .nav-cta {
+        margin-top: 14px;
+        padding: 13px 16px;
+        border-radius: 8px;
+        justify-content: center;
+        font-size: 13px;
+      }
+
+      @media (max-width: 720px) {
+        nav {
+          padding: 0 20px;
+        }
+        .nav-desktop {
+          display: none;
+        }
+        .nav-burger {
+          display: flex;
+        }
+      }
+
+      /* ── HERO ──────────────────────────────────────────────── */
+      .hero {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        padding-top: 58px;
+      }
+      .hero-left {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 80px 52px 80px 68px;
+        position: relative;
+        z-index: 1;
+      }
+      .eyebrow {
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+        font-weight: 400;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--go);
+        margin-bottom: 20px;
+        opacity: 0;
+        animation: fadeUp 0.6s 0.1s forwards;
+      }
+      h1 {
+        font-family: "DM Serif Display", serif;
+        font-size: clamp(36px, 4.2vw, 62px);
+        line-height: 1.07;
+        letter-spacing: -0.02em;
+        margin-bottom: 22px;
+        opacity: 0;
+        animation: fadeUp 0.7s 0.2s forwards;
+      }
+      h1 em {
+        font-style: italic;
+        color: var(--muted);
+      }
+      .hero-sub {
+        font-size: 16px;
+        line-height: 1.75;
+        color: var(--muted);
+        max-width: 390px;
+        margin-bottom: 38px;
+        opacity: 0;
+        animation: fadeUp 0.7s 0.32s forwards;
+      }
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        opacity: 0;
+        animation: fadeUp 0.7s 0.46s forwards;
+      }
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--ink);
+        color: var(--white);
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        transition:
+          opacity 0.2s,
+          transform 0.15s;
+        white-space: nowrap;
+      }
+      .btn-primary:hover {
+        opacity: 0.82;
+        transform: translateY(-1px);
+      }
+      .btn-ghost {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 13px;
+        text-decoration: none;
+        font-family: "DM Mono", monospace;
+        transition: color 0.2s;
+      }
+      .btn-ghost:hover {
+        color: var(--ink);
+      }
+      .os-note {
+        width: 100%;
+        margin-top: 6px;
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .hero-meta {
+        margin-top: 44px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        opacity: 0;
+        animation: fadeUp 0.7s 0.6s forwards;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+        color: var(--muted);
+        background: var(--off);
+        padding: 4px 11px;
+        border-radius: 99px;
+        border: 1px solid var(--faint);
+        text-decoration: none;
+        transition:
+          border-color 0.2s,
+          color 0.2s;
+      }
+      a.pill:hover {
+        border-color: var(--go);
+        color: var(--go);
+      }
+
+      /* ── HERO RIGHT ────────────────────────────────────────── */
+      .hero-right {
+        position: relative;
+        background: var(--off);
+        border-left: 1px solid var(--faint);
+        overflow: hidden;
+        opacity: 0;
+        animation: fadeIn 0.9s 0.35s forwards;
+      }
+      #demo-canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+
+      /* Gopher */
+      #gopher-wrap {
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%) translateY(72%);
+        transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        z-index: 2;
+        pointer-events: none;
+        width: 110px;
+      }
+      .hero-right:hover #gopher-wrap {
+        transform: translateX(-50%) translateY(0%);
+      }
+      #gopher-wrap svg {
+        width: 110px;
+        height: auto;
+        display: block;
+      }
+
+      /* ── STEPS ─────────────────────────────────────────────── */
+      .steps {
+        padding: 100px 68px;
+        border-top: 1px solid var(--faint);
+      }
+      .section-label {
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--go);
+        margin-bottom: 52px;
+      }
+      .steps-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .step {
+        padding-right: 36px;
+        border-right: 1px solid var(--faint);
+      }
+      .step:last-child {
+        border-right: none;
+        padding-right: 0;
+      }
+      .step:not(:first-child) {
+        padding-left: 36px;
+      }
+      .step-num {
+        font-family: "DM Serif Display", serif;
+        font-size: 44px;
+        color: var(--faint);
+        line-height: 1;
+        margin-bottom: 16px;
+      }
+      .step h3 {
+        font-family: "DM Serif Display", serif;
+        font-size: 21px;
+        font-weight: 400;
+        margin-bottom: 10px;
+      }
+      .step p {
+        font-size: 14px;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+      code {
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+        background: var(--off);
+        border: 1px solid var(--faint);
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+
+      /* ── FEATURES ──────────────────────────────────────────── */
+      .features {
+        padding: 100px 68px;
+        background: var(--ink);
+        color: var(--white);
+      }
+      .features .section-label {
+        color: rgba(255, 255, 255, 0.22);
+      }
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: rgba(255, 255, 255, 0.07);
+      }
+      .feature {
+        background: var(--ink);
+        padding: 40px 36px;
+        transition: background 0.2s;
+      }
+      .feature:hover {
+        background: color-mix(in srgb, var(--ink) 88%, white);
+      }
+      .feature-icon {
+        width: 36px;
+        height: 36px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--go);
+        margin-bottom: 20px;
+      }
+      .feature h3 {
+        font-family: "DM Serif Display", serif;
+        font-size: 19px;
+        font-weight: 400;
+        margin-bottom: 10px;
+      }
+      .feature p {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.38);
+        line-height: 1.75;
+      }
+      .feature p a {
+        color: var(--go);
+        text-decoration: none;
+      }
+      .feature p a:hover {
+        text-decoration: underline;
+      }
+
+      /* ── INSTALL ───────────────────────────────────────────── */
+      .install {
+        padding: 100px 68px;
+        background: var(--off);
+        border-top: 1px solid var(--faint);
+      }
+      .install-inner {
+        max-width: 640px;
+      }
+      .install h2 {
+        font-family: "DM Serif Display", serif;
+        font-size: 38px;
+        font-weight: 400;
+        margin-bottom: 8px;
+        line-height: 1.15;
+      }
+      .install-sub {
+        font-size: 15px;
+        color: var(--muted);
+        margin-bottom: 32px;
+      }
+      .install-tabs {
+        display: flex;
+        border: 1px solid var(--faint);
+        border-radius: 8px 8px 0 0;
+        overflow: hidden;
+        background: var(--faint);
+      }
+      .tab-btn {
+        flex: 1;
+        padding: 10px 0;
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--muted);
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .tab-btn.active {
+        background: var(--ink);
+        color: var(--white);
+      }
+      .code-block {
+        background: var(--ink);
+        color: #dddbd4;
+        padding: 24px 28px;
+        border-radius: 0 0 10px 10px;
+        font-family: "DM Mono", monospace;
+        font-size: 13px;
+        line-height: 2;
+        position: relative;
+        overflow: hidden;
+      }
+      .code-block::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--go);
+      }
+      .tab-panel {
+        display: none;
+      }
+      .tab-panel.active {
+        display: block;
+      }
+      .c-dim {
+        color: rgba(255, 255, 255, 0.26);
+      }
+      .c-go {
+        color: #29c4e8;
+      }
+      .c-str {
+        color: #a8d8a8;
+      }
+      .c-cmd {
+        color: #f9cb74;
+      }
+      .install-note {
+        margin-top: 12px;
+        font-size: 13px;
+        color: var(--muted);
+        font-family: "DM Mono", monospace;
+      }
+      .install-note code {
+        background: var(--faint);
+      }
+
+      /* ── FOOTER ────────────────────────────────────────────── */
+      footer {
+        border-top: 1px solid var(--faint);
+        padding: 32px 68px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+      .footer-logo {
+        font-family: "DM Mono", monospace;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .footer-mid {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .footer-mid a {
+        color: var(--muted);
+        text-underline-offset: 3px;
+      }
+      .footer-mid a:hover {
+        color: var(--ink);
+      }
+      .footer-links {
+        display: flex;
+        gap: 18px;
+      }
+      .footer-links a {
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+        color: var(--muted);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .footer-links a:hover {
+        color: var(--ink);
+      }
+
+      /* ── ANIMATIONS ────────────────────────────────────────── */
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      /* ── RESPONSIVE ────────────────────────────────────────── */
+      @media (max-width: 900px) {
+        .hero {
+          grid-template-columns: 1fr;
+          min-height: auto;
+        }
+        .hero-left {
+          padding: 56px 28px 48px;
+        }
+        .hero-right {
+          min-height: 360px;
+          border-left: none;
+          border-top: 1px solid var(--faint);
+        }
+        .steps,
+        .features,
+        .install {
+          padding-left: 28px;
+          padding-right: 28px;
+          padding-top: 72px;
+          padding-bottom: 72px;
+        }
+        .steps-grid {
+          grid-template-columns: 1fr 1fr;
+          gap: 36px;
+        }
+        .step {
+          border-right: none !important;
+          padding: 0 !important;
+        }
+        .features-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        footer {
+          padding: 28px;
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+      @media (max-width: 560px) {
+        h1 {
+          font-size: 34px;
+        }
+        .steps-grid,
+        .features-grid {
+          grid-template-columns: 1fr;
+        }
+        .btn-primary {
+          width: 100%;
+          justify-content: center;
+          padding: 14px;
+        }
+        .hero-actions {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .btn-ghost {
+          justify-content: center;
+        }
+        .install-tabs {
+          flex-direction: column;
+        }
+        .tab-btn {
+          border-bottom: 1px solid var(--faint);
+        }
+        .tab-btn:last-child {
+          border-bottom: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <nav>
+      <a class="nav-logo" href="#">🌐 sitehost</a>
+      <div class="nav-right">
+        <div class="nav-desktop">
+          <a href="#how">How it works</a>
+          <a href="#install">Install</a>
+          <a
+            href="https://github.com/GabrielVidal1/sitehost"
+            target="_blank"
+            rel="noopener"
+            >GitHub</a
+          >
+          <a href="#install" class="nav-cta">
+            <i data-lucide="arrow-right" style="width: 13px; height: 13px"></i>
+            Get started
+          </a>
+        </div>
+        <button
+          class="theme-btn"
+          id="theme-toggle"
+          aria-label="Toggle dark mode"
+          title="Toggle dark mode"
+        >
+          <i
+            data-lucide="sun"
+            class="icon-sun"
+            style="width: 15px; height: 15px"
+          ></i>
+          <i
+            data-lucide="moon"
+            class="icon-moon"
+            style="width: 15px; height: 15px"
+          ></i>
+        </button>
+        <button class="nav-burger" id="burger" aria-label="Toggle menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </nav>
+    <nav class="nav-drawer" id="drawer" aria-hidden="true">
+      <a href="#how" onclick="closeDrawer()">How it works</a>
+      <a href="#install" onclick="closeDrawer()">Install</a>
+      <a
+        href="https://github.com/GabrielVidal1/sitehost"
+        target="_blank"
+        rel="noopener"
+        onclick="closeDrawer()"
+        >GitHub</a
+      >
+      <a href="#install" class="nav-cta" onclick="closeDrawer()">Get started</a>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-left">
+        <div class="eyebrow">One binary. Zero config.</div>
+        <h1>Host anything,<br /><em>instantly.</em></h1>
+        <p class="hero-sub">
+          Drop a ZIP, get a live site. sitehost is a single Go binary that
+          serves static sites and SPAs with automatic HTTPS — no containers, no
+          YAML, no ops.
+        </p>
+        <div class="hero-actions">
+          <a href="#" class="btn-primary" id="download-btn">
+            <i data-lucide="download" style="width: 15px; height: 15px"></i>
+            <span id="download-label">Download</span>
+          </a>
+          <a
+            href="https://github.com/GabrielVidal1/sitehost"
+            target="_blank"
+            rel="noopener"
+            class="btn-ghost"
+          >
+            <i data-lucide="github" style="width: 15px; height: 15px"></i>
+            View source
+          </a>
+          <div class="os-note" id="os-note"></div>
+        </div>
+        <div class="hero-meta">
+          <span class="pill">
+            <i
+              data-lucide="cpu"
+              style="width: 11px; height: 11px; color: var(--go)"
+            ></i>
+            Written in Go
+          </span>
+          <span class="pill">
+            <i data-lucide="scale" style="width: 11px; height: 11px"></i>
+            MIT License
+          </span>
+          <a
+            class="pill"
+            href="https://caddyserver.com"
+            target="_blank"
+            rel="noopener"
+          >
+            <i
+              data-lucide="shield-check"
+              style="width: 11px; height: 11px; color: var(--go)"
+            ></i>
+            Powered by Caddy
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <canvas id="demo-canvas"></canvas>
+        <!-- Go gopher hiding at bottom, peeks up on hover -->
+        <div id="gopher-wrap">
+          <svg viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+            <!-- body -->
+            <ellipse cx="100" cy="155" rx="52" ry="58" fill="#78D7E8" />
+            <!-- belly -->
+            <ellipse cx="100" cy="162" rx="34" ry="42" fill="#C7EFF5" />
+            <!-- head -->
+            <ellipse cx="100" cy="90" rx="52" ry="50" fill="#78D7E8" />
+            <!-- ears -->
+            <ellipse cx="52" cy="68" rx="14" ry="16" fill="#78D7E8" />
+            <ellipse cx="52" cy="68" rx="8" ry="10" fill="#F9A8C9" />
+            <ellipse cx="148" cy="68" rx="14" ry="16" fill="#78D7E8" />
+            <ellipse cx="148" cy="68" rx="8" ry="10" fill="#F9A8C9" />
+            <!-- eyes whites -->
+            <ellipse cx="80" cy="84" rx="16" ry="17" fill="white" />
+            <ellipse cx="120" cy="84" rx="16" ry="17" fill="white" />
+            <!-- eye rings -->
+            <ellipse
+              cx="80"
+              cy="84"
+              rx="16"
+              ry="17"
+              fill="none"
+              stroke="#5BC8DC"
+              stroke-width="1.5"
+            />
+            <ellipse
+              cx="120"
+              cy="84"
+              rx="16"
+              ry="17"
+              fill="none"
+              stroke="#5BC8DC"
+              stroke-width="1.5"
+            />
+            <!-- pupils -->
+            <circle cx="82" cy="86" r="8" fill="#1a1a18" />
+            <circle cx="122" cy="86" r="8" fill="#1a1a18" />
+            <!-- eye shine -->
+            <circle cx="85" cy="83" r="3" fill="white" />
+            <circle cx="125" cy="83" r="3" fill="white" />
+            <!-- nose -->
+            <ellipse cx="100" cy="106" rx="14" ry="9" fill="#5BC8DC" />
+            <ellipse cx="100" cy="106" rx="8" ry="5" fill="#F9A8C9" />
+            <!-- nostrils -->
+            <ellipse cx="96" cy="108" rx="2" ry="1.5" fill="#78D7E8" />
+            <ellipse cx="104" cy="108" rx="2" ry="1.5" fill="#78D7E8" />
+            <!-- smile -->
+            <path
+              d="M88 116 Q100 126 112 116"
+              fill="none"
+              stroke="#5BC8DC"
+              stroke-width="2.5"
+              stroke-linecap="round"
+            />
+            <!-- arms peeking up -->
+            <ellipse
+              cx="54"
+              cy="148"
+              rx="14"
+              ry="10"
+              fill="#78D7E8"
+              transform="rotate(-30 54 148)"
+            />
+            <ellipse
+              cx="146"
+              cy="148"
+              rx="14"
+              ry="10"
+              fill="#78D7E8"
+              transform="rotate(30 146 148)"
+            />
+            <!-- feet -->
+            <ellipse cx="78" cy="208" rx="20" ry="10" fill="#5BC8DC" />
+            <ellipse cx="122" cy="208" rx="20" ry="10" fill="#5BC8DC" />
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="steps" id="how">
+      <div class="section-label">How it works</div>
+      <div class="steps-grid">
+        <div class="step">
+          <div class="step-num">01</div>
+          <h3>Install</h3>
+          <p>
+            Run the one-line install script or download the binary for your
+            platform. No runtime dependencies, ever.
+          </p>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <h3>Configure</h3>
+          <p>
+            Put your domain in <code>apps/root.txt</code> — or leave it empty
+            for localhost mode. Set <code>SITEHOST_PASS</code>. That's it.
+          </p>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <h3>Deploy</h3>
+          <p>
+            Upload a ZIP in the backoffice UI, or drop files into
+            <code>apps/mysite/</code>.
+            <a
+              href="https://caddyserver.com"
+              target="_blank"
+              rel="noopener"
+              style="color: var(--go); text-decoration: none"
+              >Caddy</a
+            >
+            reloads instantly.
+          </p>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <h3>Live</h3>
+          <p>
+            Your site is at <code>mysite.yourdomain.com</code> with a valid TLS
+            certificate courtesy of
+            <a
+              href="https://caddyserver.com"
+              target="_blank"
+              rel="noopener"
+              style="color: var(--go); text-decoration: none"
+              >Caddy</a
+            >. Add more anytime.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features">
+      <div class="section-label">Why sitehost</div>
+      <div class="features-grid">
+        <div class="feature">
+          <div class="feature-icon">
+            <i data-lucide="package" style="width: 17px; height: 17px"></i>
+          </div>
+          <h3>Single binary</h3>
+          <p>
+            One executable handles everything — HTTP/S, TLS, routing, file
+            serving, and the backoffice UI. No Node, no Docker, no config files.
+          </p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <i data-lucide="lock" style="width: 17px; height: 17px"></i>
+          </div>
+          <h3>Automatic HTTPS</h3>
+          <p>
+            Let's Encrypt certificates provisioned and renewed by
+            <a href="https://caddyserver.com" target="_blank" rel="noopener"
+              >Caddy</a
+            >, automatically. Every subdomain gets TLS without touching a config
+            file.
+          </p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <i data-lucide="layers" style="width: 17px; height: 17px"></i>
+          </div>
+          <h3>SPA-aware</h3>
+          <p>
+            Detects React, Vue and Vite builds automatically. SPAs get fallback
+            routing to
+            <code
+              style="
+                color: inherit;
+                background: rgba(255, 255, 255, 0.08);
+                border: none;
+              "
+              >index.html</code
+            >
+            with no config needed.
+          </p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <i data-lucide="monitor" style="width: 17px; height: 17px"></i>
+          </div>
+          <h3>Localhost mode</h3>
+          <p>
+            No domain? Each site gets its own port — 9000, 9001, 9002. Great for
+            local dev, intranet hosting, and offline demos.
+          </p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <i data-lucide="git-branch" style="width: 17px; height: 17px"></i>
+          </div>
+          <h3>Subdomain routing</h3>
+          <p>
+            Each folder in
+            <code
+              style="
+                color: inherit;
+                background: rgba(255, 255, 255, 0.08);
+                border: none;
+              "
+              >apps/</code
+            >
+            becomes a subdomain. Routing is rebuilt live on every deploy via
+            <a href="https://caddyserver.com" target="_blank" rel="noopener"
+              >Caddy</a
+            >'s config API.
+          </p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <i data-lucide="code-2" style="width: 17px; height: 17px"></i>
+          </div>
+          <h3>Open source</h3>
+          <p>
+            MIT licensed, written in Go, built on
+            <a href="https://caddyserver.com" target="_blank" rel="noopener"
+              >Caddy</a
+            >. No telemetry, no accounts, no lock-in.
+            <a
+              href="https://github.com/GabrielVidal1/sitehost"
+              target="_blank"
+              rel="noopener"
+              >Fork it freely.</a
+            >
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- INSTALL -->
+    <section class="install" id="install">
+      <div class="install-inner">
+        <div class="section-label">Get started</div>
+        <h2>Up in three<br />commands.</h2>
+        <p class="install-sub">Choose your preferred installation method.</p>
+
+        <div class="install-tabs" role="tablist">
+          <button class="tab-btn active" onclick="showTab('script', this)">
+            Install script
+          </button>
+          <button class="tab-btn" onclick="showTab('manual', this)">
+            Manual
+          </button>
+          <button class="tab-btn" onclick="showTab('source', this)">
+            From source
+          </button>
+        </div>
+
+        <div id="tab-script" class="tab-panel active">
+          <div class="code-block">
+            <span class="c-dim"
+              ># detects your OS &amp; arch, asks before writing anything</span
+            ><br />
+            <span class="c-cmd">curl</span> -fsSL
+            https://sitehost.dev/install.sh | sh
+          </div>
+          <p class="install-note">
+            → creates <code>apps/</code> and <code>apps/root.txt</code> in the
+            current directory
+          </p>
+        </div>
+
+        <div id="tab-manual" class="tab-panel">
+          <div class="code-block">
+            <span class="c-dim"># replace linux-amd64 with your platform</span
+            ><br />
+            <span class="c-cmd">curl</span> -Lo sitehost \<br />
+            &nbsp;
+            https://github.com/GabrielVidal1/sitehost/releases/latest/download/sitehost-<span
+              class="c-go"
+              >linux-amd64</span
+            ><br /><br />
+            <span class="c-cmd">chmod</span> +x sitehost<br />
+            <span class="c-cmd">mkdir</span> -p apps &amp;&amp; touch
+            apps/root.txt
+          </div>
+          <p class="install-note">
+            → platforms: <code>linux-amd64</code> <code>linux-arm64</code>
+            <code>darwin-amd64</code> <code>darwin-arm64</code>
+            <code>windows-amd64.exe</code>
+          </p>
+        </div>
+
+        <div id="tab-source" class="tab-panel">
+          <div class="code-block">
+            <span class="c-dim"># requires Go 1.21+</span><br />
+            <span class="c-cmd">git</span> clone
+            https://github.com/GabrielVidal1/sitehost<br />
+            <span class="c-cmd">cd</span> sitehost &amp;&amp;
+            <span class="c-cmd">make</span> build<br /><br />
+            <span class="c-dim"># run locally (no domain needed)</span><br />
+            <span class="c-go">SITEHOST_PASS</span>=dev
+            <span class="c-cmd">make</span> run-local
+          </div>
+          <p class="install-note">
+            → backoffice at <code>http://localhost:8999</code>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="footer-logo">🌐 sitehost</div>
+      <div class="footer-mid">
+        made with 🩷 by
+        <a
+          href="https://gabriel.vidal--ayrinhac.xyz/"
+          target="_blank"
+          rel="noopener"
+          >Gabriel Vidal</a
+        >
+      </div>
+      <div class="footer-links">
+        <a
+          href="https://github.com/GabrielVidal1/sitehost"
+          target="_blank"
+          rel="noopener"
+        >
+          <i data-lucide="github" style="width: 13px; height: 13px"></i> GitHub
+        </a>
+        <a
+          href="https://github.com/GabrielVidal1/sitehost/blob/main/LICENSE"
+          target="_blank"
+          rel="noopener"
+        >
+          <i data-lucide="scale" style="width: 13px; height: 13px"></i> MIT
+        </a>
+        <a href="https://caddyserver.com" target="_blank" rel="noopener">
+          <i data-lucide="shield-check" style="width: 13px; height: 13px"></i>
+          Caddy
+        </a>
+      </div>
+    </footer>
+
+    <script>
+      /* ── Init Lucide icons ──────────────────────────────────── */
+      lucide.createIcons();
+
+      /* ── Dark mode toggle ───────────────────────────────────── */
+      const html = document.documentElement;
+      const themeBtn = document.getElementById("theme-toggle");
+
+      function getEffectiveTheme() {
+        const t = html.getAttribute("data-theme");
+        if (t === "dark") return "dark";
+        if (t === "light") return "light";
+        return window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+      }
+
+      themeBtn.addEventListener("click", () => {
+        const current = getEffectiveTheme();
+        html.setAttribute("data-theme", current === "dark" ? "light" : "dark");
+        localStorage.setItem("sh-theme", html.getAttribute("data-theme"));
+        // re-init icons after DOM might change
+        lucide.createIcons();
+      });
+
+      // Restore saved preference
+      const saved = localStorage.getItem("sh-theme");
+      if (saved) html.setAttribute("data-theme", saved);
+
+      /* ── Nav drawer ─────────────────────────────────────────── */
+      const burger = document.getElementById("burger");
+      const drawer = document.getElementById("drawer");
+      burger.addEventListener("click", () => {
+        const open = drawer.classList.toggle("open");
+        burger.classList.toggle("open", open);
+        drawer.setAttribute("aria-hidden", String(!open));
+      });
+      function closeDrawer() {
+        drawer.classList.remove("open");
+        burger.classList.remove("open");
+        drawer.setAttribute("aria-hidden", "true");
+      }
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeDrawer();
+      });
+
+      /* ── Tabs ───────────────────────────────────────────────── */
+      function showTab(id, btn) {
+        document
+          .querySelectorAll(".tab-panel")
+          .forEach((p) => p.classList.remove("active"));
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document.getElementById("tab-" + id).classList.add("active");
+        btn.classList.add("active");
+      }
+
+      /* ── OS detection → download button ────────────────────── */
+      (function () {
+        const REPO = "GabrielVidal1/sitehost";
+        const ua = (navigator.userAgent || "").toLowerCase();
+        const plat = (navigator.platform || "").toLowerCase();
+        let goos,
+          goarch,
+          ext = "";
+
+        if (/win/.test(plat) || /windows/.test(ua)) {
+          goos = "windows";
+          ext = ".exe";
+        } else if (/mac/.test(plat) || /macintosh/.test(ua)) {
+          goos = "darwin";
+        } else {
+          goos = "linux";
+        }
+
+        goarch = /arm64|aarch64/.test(ua) ? "arm64" : "amd64";
+
+        if (goos === "darwin") {
+          try {
+            const c = document.createElement("canvas");
+            const gl = c.getContext("webgl");
+            if (gl) {
+              const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+              if (
+                dbg &&
+                /apple m\d/i.test(
+                  gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || "",
+                )
+              )
+                goarch = "arm64";
+            }
+          } catch (_) {}
+        }
+
+        const asset = "sitehost-" + goos + "-" + goarch + ext;
+        const osName =
+          goos === "darwin"
+            ? "macOS"
+            : goos === "windows"
+              ? "Windows"
+              : "Linux";
+
+        document.getElementById("download-label").textContent =
+          "Download for " + osName + " (" + goarch + ")";
+        document.getElementById("os-note").textContent = "↳ " + asset;
+
+        fetch("https://api.github.com/repos/" + REPO + "/releases/latest")
+          .then((r) => r.json())
+          .then((d) => {
+            const tag = d.tag_name || "latest";
+            document.getElementById("download-btn").href =
+              "https://github.com/" +
+              REPO +
+              "/releases/download/" +
+              tag +
+              "/" +
+              asset;
+          })
+          .catch(() => {
+            document.getElementById("download-btn").href =
+              "https://github.com/" +
+              REPO +
+              "/releases/latest/download/" +
+              asset;
+          });
+      })();
+
+      /* ── Canvas animation ───────────────────────────────────── */
+      (function () {
+        const canvas = document.getElementById("demo-canvas");
+        const ctx = canvas.getContext("2d");
+        const isDark = () =>
+          document.documentElement.getAttribute("data-theme") === "dark" ||
+          (document.documentElement.getAttribute("data-theme") === "auto" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+        const tree = [
+          { label: "apps/", x: 0.1, y: 0.28, root: true, isDir: true },
+          { label: "root/", x: 0.1, y: 0.42, root: false, isDir: true },
+          { label: "blog/", x: 0.1, y: 0.55, root: false, isDir: true },
+          { label: "docs/", x: 0.1, y: 0.68, root: false, isDir: true },
+          { label: "root.txt", x: 0.1, y: 0.8, root: false, isDir: false },
+        ];
+        const frs = [
+          { label: "yourdomain.com", x: 0.5, y: 0.1, w: 0.44, h: 0.22 },
+          { label: "blog.yourdomain.com", x: 0.5, y: 0.4, w: 0.44, h: 0.22 },
+          { label: "docs.yourdomain.com", x: 0.5, y: 0.7, w: 0.44, h: 0.22 },
+        ];
+        const conns = [
+          { from: 1, to: 0 },
+          { from: 2, to: 1 },
+          { from: 3, to: 2 },
+        ];
+        const ivls = [1900, 2600, 3300];
+        let pulses = [],
+          lastSpawn = [0, 0, 0],
+          W,
+          H;
+
+        function resize() {
+          const r = canvas.parentElement.getBoundingClientRect();
+          W = r.width;
+          H = r.height;
+          canvas.width = W * devicePixelRatio;
+          canvas.height = H * devicePixelRatio;
+          canvas.style.width = W + "px";
+          canvas.style.height = H + "px";
+          ctx.scale(devicePixelRatio, devicePixelRatio);
+        }
+
+        const tp = (n) => ({ x: n.x * W, y: n.y * H });
+        const ftp = (f) => ({ x: f.x * W, y: f.y * H, w: f.w * W, h: f.h * H });
+
+        function getCP(c) {
+          const A = tp(tree[c.from]);
+          const fr = ftp(frs[c.to]);
+          const P0 = { x: A.x + 74, y: A.y };
+          const P3 = { x: fr.x, y: fr.y + fr.h * 0.5 };
+          const dx = P3.x - P0.x;
+          return {
+            P0,
+            P1: { x: P0.x + dx * 0.42, y: P0.y },
+            P2: { x: P3.x - dx * 0.4, y: P3.y },
+            P3,
+          };
+        }
+
+        function bz(p0, p1, p2, p3, t) {
+          const m = 1 - t;
+          return {
+            x:
+              m * m * m * p0.x +
+              3 * m * m * t * p1.x +
+              3 * m * t * t * p2.x +
+              t * t * t * p3.x,
+            y:
+              m * m * m * p0.y +
+              3 * m * m * t * p1.y +
+              3 * m * t * t * p2.y +
+              t * t * t * p3.y,
+          };
+        }
+
+        function drawTree() {
+          const d = isDark();
+          const root = tp(tree[0]);
+          ctx.strokeStyle = d ? "#2e2e2b" : "#d4d3cf";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          for (let i = 1; i < tree.length; i++) {
+            const p = tp(tree[i]);
+            ctx.moveTo(root.x + 8, root.y + 16);
+            ctx.lineTo(root.x + 8, p.y);
+            ctx.moveTo(root.x + 8, p.y);
+            ctx.lineTo(root.x + 22, p.y);
+          }
+          ctx.stroke();
+          tree.forEach((n) => {
+            const p = tp(n);
+            ctx.font = (n.root ? "500" : "400") + ' 13px "DM Mono",monospace';
+            ctx.fillStyle = d
+              ? n.root
+                ? "#edecea"
+                : n.isDir
+                  ? "#999"
+                  : "#555"
+              : n.root
+                ? "#0e0e0d"
+                : n.isDir
+                  ? "#444"
+                  : "#aaa";
+            ctx.fillText(
+              (n.isDir ? "📁" : "📄") + " " + n.label,
+              p.x + (n.root ? 0 : 24),
+              p.y + 4,
+            );
+          });
+        }
+
+        function drawFrames() {
+          const d = isDark();
+          frs.forEach((f) => {
+            const p = ftp(f);
+            ctx.shadowColor = "rgba(0,0,0,0.10)";
+            ctx.shadowBlur = 18;
+            ctx.shadowOffsetY = 4;
+            ctx.beginPath();
+            ctx.roundRect(p.x, p.y, p.w, p.h, 8);
+            ctx.fillStyle = d ? "#1a1a17" : "#f7f6f3";
+            ctx.fill();
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.beginPath();
+            ctx.roundRect(p.x, p.y, p.w, p.h, 8);
+            ctx.strokeStyle = d ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            // toolbar
+            ctx.fillStyle = d ? "rgba(255,255,255,.04)" : "rgba(0,0,0,.04)";
+            ctx.beginPath();
+            ctx.roundRect(p.x, p.y, p.w, 22, [8, 8, 0, 0]);
+            ctx.fill();
+            ["#ff5f57", "#febc2e", "#28c840"].forEach((c, i) => {
+              ctx.beginPath();
+              ctx.arc(p.x + 11 + i * 13, p.y + 11, 3.5, 0, Math.PI * 2);
+              ctx.fillStyle = c;
+              ctx.fill();
+            });
+            // url bar
+            ctx.fillStyle = d ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.05)";
+            ctx.beginPath();
+            ctx.roundRect(p.x + 48, p.y + 4, p.w - 58, 14, 3);
+            ctx.fill();
+            ctx.font = '9px "DM Mono",monospace';
+            ctx.fillStyle = d ? "#555" : "#aaa";
+            ctx.fillText(f.label, p.x + 52, p.y + 14);
+            // content lines
+            [[0.5], [0.64], [0.38]].forEach(([w], i) => {
+              ctx.fillStyle = d ? "rgba(255,255,255,.09)" : "rgba(0,0,0,.09)";
+              ctx.beginPath();
+              ctx.roundRect(p.x + 14, p.y + 30 + i * 17, p.w * w, 7, 2);
+              ctx.fill();
+            });
+          });
+        }
+
+        function drawConns() {
+          const d = isDark();
+          conns.forEach((c) => {
+            const { P0, P1, P2, P3 } = getCP(c);
+            ctx.beginPath();
+            ctx.moveTo(P0.x, P0.y);
+            ctx.bezierCurveTo(P1.x, P1.y, P2.x, P2.y, P3.x, P3.y);
+            ctx.strokeStyle = d
+              ? "rgba(41,196,232,0.12)"
+              : "rgba(0,172,215,0.13)";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          });
+        }
+
+        function drawPulses() {
+          const goC = isDark() ? "#29c4e8" : "#00ACD7";
+          pulses.forEach((p) => {
+            const { P0, P1, P2, P3 } = getCP(conns[p.conn]);
+            const pt = bz(P0, P1, P2, P3, p.t);
+            const g = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 10);
+            g.addColorStop(0, "rgba(0,172,215,0.85)");
+            g.addColorStop(0.4, "rgba(0,172,215,0.3)");
+            g.addColorStop(1, "rgba(0,172,215,0)");
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 10, 0, Math.PI * 2);
+            ctx.fillStyle = g;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 2.8, 0, Math.PI * 2);
+            ctx.fillStyle = goC;
+            ctx.fill();
+          });
+        }
+
+        function frame(ts) {
+          ctx.clearRect(0, 0, W, H);
+          drawTree();
+          drawConns();
+          drawFrames();
+          drawPulses();
+          conns.forEach((_, ci) => {
+            if (ts - lastSpawn[ci] > ivls[ci]) {
+              pulses.push({
+                conn: ci,
+                t: 0,
+                speed: 0.0038 + Math.random() * 0.003,
+              });
+              lastSpawn[ci] = ts;
+            }
+          });
+          pulses = pulses.filter((p) => {
+            p.t += p.speed;
+            return p.t < 1;
+          });
+          requestAnimationFrame(frame);
+        }
+
+        resize();
+        new ResizeObserver(resize).observe(canvas.parentElement);
+        requestAnimationFrame(frame);
+      })();
+    </script>
+  </body>
+</html>
