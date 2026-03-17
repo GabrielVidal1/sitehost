@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net"
@@ -42,7 +44,11 @@ func main() {
 	boUser := envOr("ZIPGO_USER", "admin")
 	boPass := envOr("ZIPGO_PASS", "")
 	if boPass == "" {
-		log.Fatal("❌  Set ZIPGO_PASS before starting.\n    Example: export ZIPGO_PASS=changeme")
+		boPass, err = generatePassword(16)
+		if err != nil {
+			log.Fatalf("❌  Could not generate admin password: %v\n", err)
+		}
+		fmt.Printf("🔑  Generated admin password: %s\n    (set ZIPGO_PASS to set it instead)\n\n", boPass)
 	}
 
 	backofficeAddr := "127.0.0.1:" + backofficeInternalPort
@@ -182,4 +188,15 @@ func envOr(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// generatePassword returns a cryptographically random URL-safe password of the
+// requested byte length (the base64 output will be slightly longer).
+func generatePassword(byteLen int) (string, error) {
+	b := make([]byte, byteLen)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	// RawURLEncoding avoids '+', '/', and '=' which are awkward in shell contexts.
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }

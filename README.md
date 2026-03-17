@@ -42,7 +42,7 @@ A minimal static site host powered by [Caddy](https://caddyserver.com/) and Go. 
 ```bash
 git clone https://github.com/GabrielVidal1/zipgo
 cd zipgo
-ZIPGO_PASS=dev make run-local
+make run-local
 ```
 
 | URL                     | What                |
@@ -58,7 +58,7 @@ ZIPGO_PASS=dev make run-local
 echo "yourdomain.com" > apps/root.txt
 
 # 2. Run (needs ports 80/443)
-ZIPGO_PASS=supersecret make run
+make run
 ```
 
 | URL                                 | What                |
