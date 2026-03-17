@@ -1,5 +1,11 @@
 # sitehost
 
+![GitHub release](https://img.shields.io/github/v/release/GabrielVidal1/sitehost)
+![Go version](https://img.shields.io/github/go-mod/go-version/GabrielVidal1/sitehost)
+![Build](https://img.shields.io/github/actions/workflow/status/GabrielVidal1/sitehost/release.yml)
+![License](https://img.shields.io/github/license/GabrielVidal1/sitehost)
+![Platforms](https://img.shields.io/badge/platforms-linux%20%7C%20macOS-blue)
+
 A minimal static site host powered by [Caddy](https://caddyserver.com/) and Go. Drop a ZIP into a web UI and your site is live — with automatic HTTPS via Let's Encrypt, or on localhost with zero config.
 
 ---
@@ -34,7 +40,7 @@ A minimal static site host powered by [Caddy](https://caddyserver.com/) and Go. 
 ### Localhost (no domain, no sudo)
 
 ```bash
-git clone https://github.com/you/sitehost
+git clone https://github.com/GabrielVidal1/sitehost
 cd sitehost
 SITEHOST_PASS=dev make run-local
 ```
