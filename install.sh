@@ -104,10 +104,14 @@ fi
 
 # ── prompt for password ────────────────────────────────────────────────────
 if [ -z "$ZIPGO_PASS" ]; then
-  printf "  Set a backoffice password: "
+  printf "  Set a backoffice password (leave empty to auto-generate): "
   read -rs ZIPGO_PASS </dev/tty
   printf "\n"
-  [ -z "$ZIPGO_PASS" ] && ZIPGO_PASS="admin"
+
+  if [ -z "$ZIPGO_PASS" ]; then
+    ZIPGO_PASS=$(openssl rand -base64 12 | tr -d '=+/')
+    printf "  Generated password: %s\n" "$ZIPGO_PASS"
+  fi
 fi
 
 # ── OS-specific background service setup ──────────────────────────────────
