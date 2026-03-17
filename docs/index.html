@@ -23,6 +23,7 @@
       /* ── THEME ─────────────────────────────────────────────── */
       :root {
         --white: #ffffff;
+        --black: #000000;
         --off: #f7f6f3;
         --ink: #0e0e0d;
         --muted: #6b6b65;
@@ -31,8 +32,9 @@
       }
       [data-theme="dark"] {
         --white: #0f0f0e;
+        --black: #ffffff;
         --off: #181816;
-        --ink: #edecea;
+        --ink: #000000;
         --muted: #888880;
         --faint: #2a2a27;
         --go: #29c4e8;
@@ -40,8 +42,9 @@
       @media (prefers-color-scheme: dark) {
         [data-theme="auto"] {
           --white: #0f0f0e;
+          --black: #ffffff;
           --off: #181816;
-          --ink: #edecea;
+          --ink: #000000;
           --muted: #888880;
           --faint: #2a2a27;
           --go: #29c4e8;
@@ -86,7 +89,7 @@
         font-size: 15px;
         font-weight: 500;
         text-decoration: none;
-        color: var(--ink);
+        color: var(--black);
         flex-shrink: 0;
       }
       .nav-right {
@@ -265,6 +268,10 @@
         position: relative;
         z-index: 1;
       }
+      .hero-left-title {
+        color: var(--black);
+        font-family: "DM Serif Display", serif;
+      }
       .eyebrow {
         font-family: "DM Mono", monospace;
         font-size: 11px;
@@ -301,7 +308,7 @@
       .hero-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 20px;
         align-items: center;
         opacity: 0;
         animation: fadeUp 0.7s 0.46s forwards;
@@ -311,7 +318,7 @@
         align-items: center;
         gap: 7px;
         background: var(--ink);
-        color: var(--white);
+        color: #fff;
         padding: 12px 20px;
         border-radius: 8px;
         font-size: 14px;
@@ -397,19 +404,21 @@
         position: absolute;
         bottom: -10px;
         left: 50%;
-        transform: translateX(-50%) translateY(72%);
+        transform: translateX(-150%) translateY(83%);
         transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         z-index: 2;
         pointer-events: none;
-        width: 110px;
+        width: 130px;
       }
       .hero-right:hover #gopher-wrap {
-        transform: translateX(-50%) translateY(0%);
+        transform: translateX(-100%) translateY(0%);
       }
-      #gopher-wrap svg {
-        width: 110px;
+      #gopher-wrap img {
+        width: 80px;
         height: auto;
         display: block;
+        /* flip horizontally so gopher faces left (into the canvas) */
+        transform: scaleX(-1);
       }
 
       /* ── STEPS ─────────────────────────────────────────────── */
@@ -452,6 +461,7 @@
         font-size: 21px;
         font-weight: 400;
         margin-bottom: 10px;
+        color: var(--black);
       }
       .step p {
         font-size: 14px;
@@ -506,6 +516,7 @@
         font-size: 19px;
         font-weight: 400;
         margin-bottom: 10px;
+        color: #fff;
       }
       .feature p {
         font-size: 13px;
@@ -563,7 +574,7 @@
       }
       .tab-btn.active {
         background: var(--ink);
-        color: var(--white);
+        color: #fff;
       }
       .code-block {
         background: var(--ink);
@@ -625,6 +636,7 @@
       }
       .footer-logo {
         font-family: "DM Mono", monospace;
+        color: var(--black);
         font-size: 14px;
         display: flex;
         align-items: center;
@@ -635,7 +647,7 @@
         color: var(--muted);
       }
       .footer-mid a {
-        color: var(--muted);
+        color: var(--black);
         text-underline-offset: 3px;
       }
       .footer-mid a:hover {
@@ -763,7 +775,7 @@
             rel="noopener"
             >GitHub</a
           >
-          <a href="#install" class="nav-cta">
+          <a href="#install" class="nav-cta" style="color: #fff">
             <i data-lucide="arrow-right" style="width: 13px; height: 13px"></i>
             Get started
           </a>
@@ -807,7 +819,7 @@
     <section class="hero">
       <div class="hero-left">
         <div class="eyebrow">One binary. Zero config.</div>
-        <h1>Host anything,<br /><em>instantly.</em></h1>
+        <h1 class="hero-left-title">Host anything,<br /><em>instantly.</em></h1>
         <p class="hero-sub">
           Drop a ZIP, get a live site. sitehost is a single Go binary that
           serves static sites and SPAs with automatic HTTPS — no containers, no
@@ -858,83 +870,18 @@
 
       <div class="hero-right">
         <canvas id="demo-canvas"></canvas>
-        <!-- Go gopher hiding at bottom, peeks up on hover -->
+        <!-- Official Go Gopher (golang-samples/gopher-vector) peeking from bottom -->
         <div id="gopher-wrap">
-          <svg viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
-            <!-- body -->
-            <ellipse cx="100" cy="155" rx="52" ry="58" fill="#78D7E8" />
-            <!-- belly -->
-            <ellipse cx="100" cy="162" rx="34" ry="42" fill="#C7EFF5" />
-            <!-- head -->
-            <ellipse cx="100" cy="90" rx="52" ry="50" fill="#78D7E8" />
-            <!-- ears -->
-            <ellipse cx="52" cy="68" rx="14" ry="16" fill="#78D7E8" />
-            <ellipse cx="52" cy="68" rx="8" ry="10" fill="#F9A8C9" />
-            <ellipse cx="148" cy="68" rx="14" ry="16" fill="#78D7E8" />
-            <ellipse cx="148" cy="68" rx="8" ry="10" fill="#F9A8C9" />
-            <!-- eyes whites -->
-            <ellipse cx="80" cy="84" rx="16" ry="17" fill="white" />
-            <ellipse cx="120" cy="84" rx="16" ry="17" fill="white" />
-            <!-- eye rings -->
-            <ellipse
-              cx="80"
-              cy="84"
-              rx="16"
-              ry="17"
-              fill="none"
-              stroke="#5BC8DC"
-              stroke-width="1.5"
-            />
-            <ellipse
-              cx="120"
-              cy="84"
-              rx="16"
-              ry="17"
-              fill="none"
-              stroke="#5BC8DC"
-              stroke-width="1.5"
-            />
-            <!-- pupils -->
-            <circle cx="82" cy="86" r="8" fill="#1a1a18" />
-            <circle cx="122" cy="86" r="8" fill="#1a1a18" />
-            <!-- eye shine -->
-            <circle cx="85" cy="83" r="3" fill="white" />
-            <circle cx="125" cy="83" r="3" fill="white" />
-            <!-- nose -->
-            <ellipse cx="100" cy="106" rx="14" ry="9" fill="#5BC8DC" />
-            <ellipse cx="100" cy="106" rx="8" ry="5" fill="#F9A8C9" />
-            <!-- nostrils -->
-            <ellipse cx="96" cy="108" rx="2" ry="1.5" fill="#78D7E8" />
-            <ellipse cx="104" cy="108" rx="2" ry="1.5" fill="#78D7E8" />
-            <!-- smile -->
-            <path
-              d="M88 116 Q100 126 112 116"
-              fill="none"
-              stroke="#5BC8DC"
-              stroke-width="2.5"
-              stroke-linecap="round"
-            />
-            <!-- arms peeking up -->
-            <ellipse
-              cx="54"
-              cy="148"
-              rx="14"
-              ry="10"
-              fill="#78D7E8"
-              transform="rotate(-30 54 148)"
-            />
-            <ellipse
-              cx="146"
-              cy="148"
-              rx="14"
-              ry="10"
-              fill="#78D7E8"
-              transform="rotate(30 146 148)"
-            />
-            <!-- feet -->
-            <ellipse cx="78" cy="208" rx="20" ry="10" fill="#5BC8DC" />
-            <ellipse cx="122" cy="208" rx="20" ry="10" fill="#5BC8DC" />
-          </svg>
+          <img
+            src="https://raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.svg"
+            alt="Go Gopher"
+            width="80"
+            height="auto"
+            onerror="
+              this.onerror = null;
+              this.src = 'https://go.dev/blog/gopher/gopher.png';
+            "
+          />
         </div>
       </div>
     </section>
@@ -1095,7 +1042,7 @@
     <section class="install" id="install">
       <div class="install-inner">
         <div class="section-label">Get started</div>
-        <h2>Up in three<br />commands.</h2>
+        <h2 style="color: var(--black)">Up in three<br />commands.</h2>
         <p class="install-sub">Choose your preferred installation method.</p>
 
         <div class="install-tabs" role="tablist">
@@ -1116,7 +1063,8 @@
               ># detects your OS &amp; arch, asks before writing anything</span
             ><br />
             <span class="c-cmd">curl</span> -fsSL
-            https://sitehost.dev/install.sh | sh
+            https://raw.githubusercontent.com/GabrielVidal1/sitehost/refs/heads/main/install.sh
+            | sh
           </div>
           <p class="install-note">
             → creates <code>apps/</code> and <code>apps/root.txt</code> in the
@@ -1218,7 +1166,6 @@
         const current = getEffectiveTheme();
         html.setAttribute("data-theme", current === "dark" ? "light" : "dark");
         localStorage.setItem("sh-theme", html.getAttribute("data-theme"));
-        // re-init icons after DOM might change
         lucide.createIcons();
       });
 
@@ -1456,7 +1403,6 @@
             ctx.strokeStyle = d ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
             ctx.lineWidth = 1;
             ctx.stroke();
-            // toolbar
             ctx.fillStyle = d ? "rgba(255,255,255,.04)" : "rgba(0,0,0,.04)";
             ctx.beginPath();
             ctx.roundRect(p.x, p.y, p.w, 22, [8, 8, 0, 0]);
@@ -1467,7 +1413,6 @@
               ctx.fillStyle = c;
               ctx.fill();
             });
-            // url bar
             ctx.fillStyle = d ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.05)";
             ctx.beginPath();
             ctx.roundRect(p.x + 48, p.y + 4, p.w - 58, 14, 3);
@@ -1475,7 +1420,6 @@
             ctx.font = '9px "DM Mono",monospace';
             ctx.fillStyle = d ? "#555" : "#aaa";
             ctx.fillText(f.label, p.x + 52, p.y + 14);
-            // content lines
             [[0.5], [0.64], [0.38]].forEach(([w], i) => {
               ctx.fillStyle = d ? "rgba(255,255,255,.09)" : "rgba(0,0,0,.09)";
               ctx.beginPath();
