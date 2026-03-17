@@ -184,6 +184,15 @@ The service runs with `CAP_NET_BIND_SERVICE` so it can bind to ports 80/443 with
 
 ---
 
+## Documentation
+
+| Page                               | Description                                           |
+| ---------------------------------- | ----------------------------------------------------- |
+| [Backoffice](./docs/backoffice.md) | How to deploy and manage sites through the web UI     |
+| [Landing page](./docs/landing.md)  | The auto-generated site index and how to customise it |
+
+---
+
 ## License
 
 MIT
