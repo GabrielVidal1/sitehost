@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      #gopher-wrap {
+        position: fixed;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-150%) translateY(83%);
+        transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        z-index: 2;
+        pointer-events: none;
+        width: 130px;
+      }
+      body:hover #gopher-wrap {
+        transform: translateX(-100%) translateY(0%);
+      }
+      #gopher-wrap img {
+        width: 80px;
+        height: auto;
+        display: block;
+        transform: scaleX(-1);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="demo-canvas"></canvas>
+    <div id="gopher-wrap">
+      <img
+        src="https://raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.svg"
+        alt="Go Gopher"
+        width="80"
+        onerror="
+          this.onerror = null;
+          this.src = 'https://go.dev/blog/gopher/gopher.png';
+        "
+      />
+    </div>
+
+    <script>
+      (function () {
+        const canvas = document.getElementById("demo-canvas");
+        const ctx = canvas.getContext("2d");
+
+        // Read theme from query param: ?theme=dark or ?theme=light
+        function getTheme() {
+          const p = new URLSearchParams(window.location.search).get("theme");
+          if (p === "dark" || p === "light") return p;
+          return window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        }
+        let _theme = getTheme();
+        const isDark = () => _theme === "dark";
+
+        // Listen for theme updates from parent
+        window.addEventListener("message", (e) => {
+          if (e.data && (e.data === "dark" || e.data === "light")) {
+            _theme = e.data;
+          }
+        });
+
+        const tree = [
+          { label: "apps/", x: 0.1, y: 0.28, root: true, isDir: true },
+          { label: "root/", x: 0.1, y: 0.42, root: false, isDir: true },
+          { label: "blog/", x: 0.1, y: 0.55, root: false, isDir: true },
+          { label: "docs/", x: 0.1, y: 0.68, root: false, isDir: true },
+          { label: "root.txt", x: 0.1, y: 0.8, root: false, isDir: false },
+        ];
+        const frs = [
+          { label: "yourdomain.com", x: 0.5, y: 0.1, w: 0.44, h: 0.22 },
+          { label: "blog.yourdomain.com", x: 0.5, y: 0.4, w: 0.44, h: 0.22 },
+          { label: "docs.yourdomain.com", x: 0.5, y: 0.7, w: 0.44, h: 0.22 },
+        ];
+        const conns = [
+          { from: 1, to: 0 },
+          { from: 2, to: 1 },
+          { from: 3, to: 2 },
+        ];
+        const ivls = [1900, 2600, 3300];
+        let pulses = [],
+          lastSpawn = [0, 0, 0],
+          W,
+          H;
+
+        function resize() {
+          W = window.innerWidth;
+          H = window.innerHeight;
+          canvas.width = W * devicePixelRatio;
+          canvas.height = H * devicePixelRatio;
+          canvas.style.width = W + "px";
+          canvas.style.height = H + "px";
+          ctx.scale(devicePixelRatio, devicePixelRatio);
+        }
+
+        const tp = (n) => ({ x: n.x * W, y: n.y * H });
+        const ftp = (f) => ({ x: f.x * W, y: f.y * H, w: f.w * W, h: f.h * H });
+
+        function getCP(c) {
+          const A = tp(tree[c.from]);
+          const fr = ftp(frs[c.to]);
+          const P0 = { x: A.x + 74, y: A.y };
+          const P3 = { x: fr.x, y: fr.y + fr.h * 0.5 };
+          const dx = P3.x - P0.x;
+          return {
+            P0,
+            P1: { x: P0.x + dx * 0.42, y: P0.y },
+            P2: { x: P3.x - dx * 0.4, y: P3.y },
+            P3,
+          };
+        }
+
+        function bz(p0, p1, p2, p3, t) {
+          const m = 1 - t;
+          return {
+            x:
+              m * m * m * p0.x +
+              3 * m * m * t * p1.x +
+              3 * m * t * t * p2.x +
+              t * t * t * p3.x,
+            y:
+              m * m * m * p0.y +
+              3 * m * m * t * p1.y +
+              3 * m * t * t * p2.y +
+              t * t * t * p3.y,
+          };
+        }
+
+        function drawTree() {
+          const d = isDark();
+          const root = tp(tree[0]);
+          ctx.strokeStyle = d ? "#2e2e2b" : "#d4d3cf";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          for (let i = 1; i < tree.length; i++) {
+            const p = tp(tree[i]);
+            ctx.moveTo(root.x + 8, root.y + 16);
+            ctx.lineTo(root.x + 8, p.y);
+            ctx.moveTo(root.x + 8, p.y);
+            ctx.lineTo(root.x + 22, p.y);
+          }
+          ctx.stroke();
+          tree.forEach((n) => {
+            const p = tp(n);
+            ctx.font = (n.root ? "500" : "400") + ' 13px "DM Mono",monospace';
+            ctx.fillStyle = d
+              ? n.root
+                ? "#edecea"
+                : n.isDir
+                  ? "#999"
+                  : "#555"
+              : n.root
+                ? "#0e0e0d"
+                : n.isDir
+                  ? "#444"
+                  : "#aaa";
+            ctx.fillText(
+              (n.isDir ? "📁" : "📄") + " " + n.label,
+              p.x + (n.root ? 0 : 24),
+              p.y + 4,
+            );
+          });
+        }
+
+        function drawFrames() {
+          const d = isDark();
+          frs.forEach((f) => {
+            const p = ftp(f);
+            ctx.shadowColor = "rgba(0,0,0,0.10)";
+            ctx.shadowBlur = 18;
+            ctx.shadowOffsetY = 4;
+            ctx.beginPath();
+            ctx.roundRect(p.x, p.y, p.w, p.h, 8);
+            ctx.fillStyle = d ? "#1a1a17" : "#f7f6f3";
+            ctx.fill();
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.beginPath();
+            ctx.roundRect(p.x, p.y, p.w, p.h, 8);
+            ctx.strokeStyle = d ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.fillStyle = d ? "rgba(255,255,255,.04)" : "rgba(0,0,0,.04)";
+            ctx.beginPath();
+            ctx.roundRect(p.x, p.y, p.w, 22, [8, 8, 0, 0]);
+            ctx.fill();
+            ["#ff5f57", "#febc2e", "#28c840"].forEach((c, i) => {
+              ctx.beginPath();
+              ctx.arc(p.x + 11 + i * 13, p.y + 11, 3.5, 0, Math.PI * 2);
+              ctx.fillStyle = c;
+              ctx.fill();
+            });
+            ctx.fillStyle = d ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.05)";
+            ctx.beginPath();
+            ctx.roundRect(p.x + 48, p.y + 4, p.w - 58, 14, 3);
+            ctx.fill();
+            ctx.font = '9px "DM Mono",monospace';
+            ctx.fillStyle = d ? "#555" : "#aaa";
+            ctx.fillText(f.label, p.x + 52, p.y + 14);
+            [[0.5], [0.64], [0.38]].forEach(([w], i) => {
+              ctx.fillStyle = d ? "rgba(255,255,255,.09)" : "rgba(0,0,0,.09)";
+              ctx.beginPath();
+              ctx.roundRect(p.x + 14, p.y + 30 + i * 17, p.w * w, 7, 2);
+              ctx.fill();
+            });
+          });
+        }
+
+        function drawConns() {
+          const d = isDark();
+          conns.forEach((c) => {
+            const { P0, P1, P2, P3 } = getCP(c);
+            ctx.beginPath();
+            ctx.moveTo(P0.x, P0.y);
+            ctx.bezierCurveTo(P1.x, P1.y, P2.x, P2.y, P3.x, P3.y);
+            ctx.strokeStyle = d
+              ? "rgba(41,196,232,0.12)"
+              : "rgba(0,172,215,0.13)";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          });
+        }
+
+        function drawPulses() {
+          const goC = isDark() ? "#29c4e8" : "#00ACD7";
+          pulses.forEach((p) => {
+            const { P0, P1, P2, P3 } = getCP(conns[p.conn]);
+            const pt = bz(P0, P1, P2, P3, p.t);
+            const g = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 10);
+            g.addColorStop(0, "rgba(0,172,215,0.85)");
+            g.addColorStop(0.4, "rgba(0,172,215,0.3)");
+            g.addColorStop(1, "rgba(0,172,215,0)");
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 10, 0, Math.PI * 2);
+            ctx.fillStyle = g;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 2.8, 0, Math.PI * 2);
+            ctx.fillStyle = goC;
+            ctx.fill();
+          });
+        }
+
+        function frame(ts) {
+          ctx.clearRect(0, 0, W, H);
+          drawTree();
+          drawConns();
+          drawFrames();
+          drawPulses();
+          conns.forEach((_, ci) => {
+            if (ts - lastSpawn[ci] > ivls[ci]) {
+              pulses.push({
+                conn: ci,
+                t: 0,
+                speed: 0.0038 + Math.random() * 0.003,
+              });
+              lastSpawn[ci] = ts;
+            }
+          });
+          pulses = pulses.filter((p) => {
+            p.t += p.speed;
+            return p.t < 1;
+          });
+          requestAnimationFrame(frame);
+        }
+
+        resize();
+        window.addEventListener("resize", resize);
+        requestAnimationFrame(frame);
+      })();
+    </script>
+  </body>
+</html>

@@ -8,14 +8,18 @@ import (
 )
 
 type Site struct {
-	Name  string // subdirectory name = subdomain ("root" → apex domain)
-	Path  string
-	IsSPA bool
+	Name   string // subdomain segment ("root" → apex domain)
+	Parent string // parent subdomain; empty for top-level sites
+	Path   string
+	IsSPA  bool
 }
 
 func (s Site) Host(rootDomain string) string {
-	if s.Name == "root" {
+	if s.Name == "root" && s.Parent == "" {
 		return rootDomain
+	}
+	if s.Parent != "" {
+		return s.Name + "." + s.Parent + "." + rootDomain
 	}
 	return s.Name + "." + rootDomain
 }
@@ -40,6 +44,26 @@ func Discover(appsDir string) ([]Site, error) {
 			Path:  path,
 			IsSPA: detectSPA(path),
 		})
+
+		// Dot-prefixed subdirs inside a site become sub-subdomains.
+		// e.g. apps/foo/.bar/ → bar.foo.<rootDomain>
+		subEntries, _ := os.ReadDir(path)
+		for _, se := range subEntries {
+			if !se.IsDir() || !strings.HasPrefix(se.Name(), ".") {
+				continue
+			}
+			subName := strings.TrimPrefix(se.Name(), ".")
+			if subName == "" {
+				continue
+			}
+			subPath := filepath.Join(path, se.Name())
+			result = append(result, Site{
+				Name:   subName,
+				Parent: e.Name(),
+				Path:   subPath,
+				IsSPA:  detectSPA(subPath),
+			})
+		}
 	}
 	return result, nil
 }

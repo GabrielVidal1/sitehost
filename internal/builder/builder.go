@@ -93,9 +93,17 @@ func BuildConfig(domainSites []DomainSites, backofficeAddr string) (*caddy.Confi
 	}
 
 	// TLS subjects for all configured domains and their wildcards.
+	// Also add *.parent.domain for each top-level subdomain that has sub-subdomains.
 	var allSubjects []string
 	for _, ds := range domainSites {
 		allSubjects = append(allSubjects, ds.Domain, "*."+ds.Domain)
+		seen := map[string]bool{}
+		for _, s := range ds.Sites {
+			if s.Parent != "" && !seen[s.Parent] {
+				seen[s.Parent] = true
+				allSubjects = append(allSubjects, "*."+s.Parent+"."+ds.Domain)
+			}
+		}
 	}
 	subjects, _ := json.Marshal(allSubjects)
 
@@ -224,7 +232,9 @@ func BuildLocalhostConfig(domainSites []DomainSites, backofficeAddr string) (*ca
 		}
 		for _, s := range append(nonRoot, rootSites...) {
 			pathPrefix := "/" + ds.Domain
-			if s.Name != "root" {
+			if s.Parent != "" {
+				pathPrefix += "/" + s.Parent + "/" + s.Name
+			} else if s.Name != "root" {
 				pathPrefix += "/" + s.Name
 			}
 
