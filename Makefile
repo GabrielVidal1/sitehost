@@ -20,5 +20,9 @@ run: build
 run-local: build
 	ZIPGO_PASS=$${ZIPGO_PASS:-dev} ZIPGO_LOCALHOST=1 ./$(BINARY) $(DOMAINS_DIR)
 
+run-prod: build
+	sudo setcap 'cap_net_bind_service=+ep' $(BINARY)
+	ZIPGO_PASS=$${ZIPGO_PASS:-dev} sudo -E ./$(BINARY) $(DOMAINS_DIR) --prod
+
 clean:
 	rm -f $(BINARY)
