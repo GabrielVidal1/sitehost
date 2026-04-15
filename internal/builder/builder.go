@@ -8,9 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/caddyserver/caddy/v2"
 	"zipgo/internal/landing"
 	"zipgo/internal/sites"
+
+	"github.com/caddyserver/caddy/v2"
 )
 
 // ---- public helpers --------------------------------------------------------
@@ -191,7 +192,7 @@ func domainRouteJSON(s sites.Site, rootDomain string) (string, error) {
 
 	if s.Name == "root" {
 		host, _ := json.Marshal(rootDomain)
-		path, _ := json.Marshal("/index.html")
+		path, _ := json.Marshal("/")
 		return fmt.Sprintf(`{
 		"match": [{"host": [%s], "path": [%s]}],
 		"handle": [%s],
