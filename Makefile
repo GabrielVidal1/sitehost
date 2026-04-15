@@ -3,8 +3,6 @@ DOMAINS_DIR := $(abspath domains)
 
 .PHONY: build run run-local clean format
 
-
-
 format:
 	gofmt -w .
 
