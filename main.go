@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -12,9 +13,12 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
+	"time"
 
 	"github.com/caddyserver/caddy/v2"
+	"github.com/fsnotify/fsnotify"
 	_ "github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	_ "github.com/caddyserver/caddy/v2/modules/caddyhttp/fileserver"
 	_ "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy"
@@ -196,6 +200,9 @@ func main() {
 	}
 	fmt.Println("✅  Live. Ctrl+C to stop.")
 
+	// ---- watch domains dir for changes and auto-reload ----
+	go watchAndReload(domainsDir, reload)
+
 	// ---- wait for signal ----
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -208,6 +215,65 @@ func main() {
 		vinceCmd.Process.Signal(os.Interrupt)
 		vinceCmd.Wait()
 	}
+}
+
+// watchAndReload watches domainsDir for filesystem changes and calls reload()
+// with a 500 ms debounce so that bursts of writes (e.g. a ZIP extract) only
+// trigger a single reload.
+func watchAndReload(domainsDir string, reload func() error) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Printf("file watcher: failed to create: %v", err)
+		return
+	}
+
+	// Recursively add all existing directories under domainsDir.
+	_ = filepath.WalkDir(domainsDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || !d.IsDir() {
+			return nil
+		}
+		return watcher.Add(path)
+	})
+
+	var (
+		mu       sync.Mutex
+		debounce *time.Timer
+	)
+	const delay = 500 * time.Millisecond
+
+	go func() {
+		defer watcher.Close()
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				// Watch newly created subdirectories so new sites are picked up.
+				if event.Has(fsnotify.Create) {
+					if info, statErr := os.Stat(event.Name); statErr == nil && info.IsDir() {
+						_ = watcher.Add(event.Name)
+					}
+				}
+				mu.Lock()
+				if debounce != nil {
+					debounce.Stop()
+				}
+				debounce = time.AfterFunc(delay, func() {
+					log.Printf("file watcher: change detected, reloading")
+					if reloadErr := reload(); reloadErr != nil {
+						log.Printf("file watcher: reload error: %v", reloadErr)
+					}
+				})
+				mu.Unlock()
+			case watchErr, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Printf("file watcher: %v", watchErr)
+			}
+		}
+	}()
 }
 
 // startVinceSidecar launches the vince binary as a background subprocess if:

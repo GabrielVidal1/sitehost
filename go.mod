@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/caddyserver/caddy/v2 v2.8.4
+	github.com/fsnotify/fsnotify v1.9.0
 	golang.org/x/net v0.52.0
 )
 
